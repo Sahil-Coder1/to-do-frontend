@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Eye, EyeOff } from "lucide-react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/slice/userSlice";
 import { useNavigate } from "react-router-dom";
 import { toast } from 'react-toastify';
@@ -18,11 +18,13 @@ const Login = () => {
         confirmPassword: "",
         username: ""
     });
+
     const SECRET = import.meta.env.VITE_SECRET;
     const BASE_API = import.meta.env.VITE_BASE_API;
 
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const darkMode = useSelector((state) => state.theme.darkMode);
 
     const toggleAuthMode = () => setIsLogin(!isLogin);
     const togglePassword = () => setShowPassword((prev) => !prev);
@@ -40,7 +42,6 @@ const Login = () => {
         e.preventDefault();
 
         if (isLogin) {
-
             try {
                 const res = await fetch(`${BASE_API}/auth/login`, {
                     method: "POST",
@@ -49,17 +50,16 @@ const Login = () => {
                     },
                     credentials: "include",
                     body: JSON.stringify(formData)
-                })
+                });
                 const response = await res.json();
                 dispatch(setUser(response.user));
                 if (response.token) {
                     document.cookie = `token=${response.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
                 }
                 response.msg ? toast.error(response.msg) : toast.success("Welcome Back " + response.user.username);
-                console.log(response.token);
-                navigate('/')
+                navigate('/');
             } catch (error) {
-                toast.error("Login Failed")
+                toast.error("Login Failed");
             }
         } else {
             if (formData.password !== formData.confirmPassword) {
@@ -75,20 +75,19 @@ const Login = () => {
                     },
                     credentials: "include",
                     body: JSON.stringify(formData)
-                })
+                });
                 const response = await res.json();
-                console.log(response);
-                response.msg ? toast.error(response.msg) : toast.success("Register Successful ");
+                response.msg ? toast.error(response.msg) : toast.success("Register Successful");
             } catch (error) {
-                toast.error("Register Failed")
+                toast.error("Register Failed");
             }
         }
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-blue-100 to-indigo-100 px-4">
-            <div className="bg-white rounded-2xl shadow-lg p-8 sm:p-10 w-full max-w-sm animate-in fade-in zoom-in-90">
-                <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">
+        <div className={`min-h-screen flex items-center justify-center px-4 transition-colors duration-300 ${darkMode ? "bg-gray-900" : "bg-gradient-to-r from-blue-100 to-indigo-100"}`}>
+            <div className={`rounded-2xl shadow-lg p-8 sm:p-10 w-full max-w-sm animate-in fade-in zoom-in-90 transition-colors duration-300 ${darkMode ? "bg-gray-800 text-white" : "bg-white"}`}>
+                <h2 className={`text-2xl font-bold text-center mb-6 ${darkMode ? "text-white" : "text-blue-600"}`}>
                     {isLogin ? "Welcome Back 👋" : "Create an Account 🚀"}
                 </h2>
 
@@ -165,11 +164,11 @@ const Login = () => {
                     </Button>
                 </form>
 
-                <p className="text-sm text-center text-gray-500 mt-6">
+                <p className={`text-sm text-center mt-6 ${darkMode ? "text-gray-300" : "text-gray-500"}`}>
                     {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
                     <button
                         onClick={toggleAuthMode}
-                        className="text-blue-600 hover:underline focus:outline-none"
+                        className={`hover:underline focus:outline-none ${darkMode ? "text-blue-400" : "text-blue-600"}`}
                     >
                         {isLogin ? "Register" : "Login"}
                     </button>
