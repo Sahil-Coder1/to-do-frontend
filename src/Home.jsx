@@ -89,7 +89,6 @@ function Home() {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "x-auth-token": import.meta.env.VITE_SECRET,
                 },
                 credentials: "include",
                 body: JSON.stringify({
