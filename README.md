@@ -1,41 +1,35 @@
-# 📌 MERN Stack TODO App Assignment
+# 🖼️ Frontend – MERN TODO App
 
-A full-featured TODO application built with the **MERN Stack**, enhanced with **Redux Toolkit** for global state management and **ShadCN UI** for a clean, responsive interface.
-
----
-
-## 🎯 Objective
-
-Build a full-stack TODO application with user authentication, task management capabilities (add, edit, delete, complete), and a polished user interface using modern web technologies.
+A modern and responsive frontend for the MERN TODO App built using **React.js**, **Redux Toolkit**, **ShadCN UI**, and for API integration.
 
 ---
 
-## 🛠️ Tech Stack
+## ⚙️ Tech Stack
 
-### Frontend
-
-- [React.js](https://reactjs.org/)
-- [Redux Toolkit](https://redux-toolkit.js.org/)
-- [ShadCN UI](https://ui.shadcn.dev/)
-- Axios (for API calls)
-
-### Backend
-
-- [Node.js](https://nodejs.org/)
-- [Express.js](https://expressjs.com/)
-
-### Database
-
-- [MongoDB](https://www.mongodb.com/)  
-  (Recommended: [MongoDB Atlas](https://www.mongodb.com/atlas))
+- **React.js**
+- **Redux Toolkit**
+- **ShadCN UI**
+- **Tailwind CSS**
+- **Vite**
 
 ---
 
-## 💡 Features
+## 🚀 Features
 
-- ✅ User Signup & Login (Authentication with JWT)
-- ✅ Create, Edit, and Delete TODO tasks
-- ✅ Mark TODOs as **Complete / Incomplete**
-- ✅ Global state management with Redux
-- ✅ Stylish UI built using ShadCN
-- ✅ Fully responsive and clean user experience
+- 🔐 User Signup & Login
+- 📋 Create, Edit, and Delete TODOs
+- ✅ Mark TODOs as Complete or Incomplete
+- 🌍 Global state with Redux Toolkit
+- 💅 Clean UI using ShadCN components
+- 📱 Fully responsive design
+
+---
+
+## 🔧 Setup Instructions
+
+### 1. Install dependencies
+
+```bash
+cd frontend
+npm install
+```

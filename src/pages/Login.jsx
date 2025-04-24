@@ -45,16 +45,18 @@ const Login = () => {
                 const res = await fetch(`${BASE_API}/auth/login`, {
                     method: "POST",
                     headers: {
-                        "x-auth-token": SECRET,
                         "Content-Type": "application/json"
                     },
                     credentials: "include",
                     body: JSON.stringify(formData)
                 })
                 const response = await res.json();
-                dispatch(setUser(response.user))
+                dispatch(setUser(response.user));
+                if (response.token) {
+                    document.cookie = `token=${response.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+                }
                 response.msg ? toast.error(response.msg) : toast.success("Welcome Back " + response.user.username);
-                console.log(response.user);
+                console.log(response.token);
                 navigate('/')
             } catch (error) {
                 toast.error("Login Failed")

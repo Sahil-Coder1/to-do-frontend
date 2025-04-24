@@ -5,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "./components/ui/checkbox";
 import { Plus, Trash2, ClipboardList, Pencil } from "lucide-react";
-
 import Header from "./components/ui/Header";
 
 function Home() {
@@ -88,7 +87,10 @@ function Home() {
         try {
             const res = await fetch(`${BASE_API}/todos`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {
+                    "Content-Type": "application/json",
+                    "x-auth-token": import.meta.env.VITE_SECRET,
+                },
                 credentials: "include",
                 body: JSON.stringify({
                     title: title.trim(),
