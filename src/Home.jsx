@@ -109,7 +109,7 @@ function Home() {
         setIsLoading(true);
         try {
             const res = await fetch(`${BASE_API}/todos/${user._id}`, {
-                method: "POST",
+                method: "GET",
                 headers: { "Content-Type": "application/json" },
                 credentials: "include",
             });
