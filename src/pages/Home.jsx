@@ -158,6 +158,7 @@ export default function Home() {
         }
 
         setActiveAction({ type: "update", id: editingTaskId });
+
         try {
             const res = await fetch(`${BASE_API}/todos/update/${editingTaskId}`, {
                 method: "PUT",
@@ -169,21 +170,37 @@ export default function Home() {
                 }),
             });
 
-            const response = await res.json();
-            dispatch(updateTask(response));
+            if (!res.ok) {
+                const errorText = await res.text();
+                throw new Error(`Failed to update task. Server said: ${errorText}`);
+            }
+
+            const updatedTask = await res.json();
+
+            // Ensure the response has the correct structure
+            if (!updatedTask._id) {
+                throw new Error("Invalid task data received from server");
+            }
+
+            dispatch(updateTask(updatedTask));
+
             setIsEditModalOpen(false);
             setEditingTaskId(null);
             setEditTitle("");
             setEditDescription("");
+
             showToast("Task updated successfully", "success");
+
             await fetchTodos();
+
         } catch (err) {
             console.error("Error updating task:", err);
-            showToast("Failed to update task", "error");
+            showToast(err.message || "Failed to update task", "error");
         } finally {
             setActiveAction(null);
         }
     };
+
 
     const handleComplete = async (id, currentStatus) => {
         setActiveAction({ type: "toggle", id });
