@@ -110,7 +110,6 @@ function Home() {
             console.error("Add error:", err.message);
         }
     };
-
     const handleComplete = async (id, currentStatus) => {
         try {
             const res = await fetch(`${BASE_API}/todos/${id}`, {
