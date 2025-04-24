@@ -132,7 +132,7 @@ function Home() {
             return;
         }
 
-        setActiveAction({ type: "create", id: "new" });
+        // setActiveAction({ type: "create", id: "new" });
         try {
             const res = await fetch(`${BASE_API}/todos`, {
                 method: "POST",
