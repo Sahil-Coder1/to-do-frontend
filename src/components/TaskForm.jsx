@@ -2,16 +2,19 @@ import {
     Dialog,
     DialogTrigger,
     DialogContent,
+    DialogHeader,
     DialogTitle,
-    DialogFooter,
     DialogDescription,
+    DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Pencil, Trash2, X, Calendar } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Calendar, Loader2 } from "lucide-react";
 import { useSelector } from "react-redux";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 
 export function TaskForm({
     type,
@@ -23,6 +26,8 @@ export function TaskForm({
     setDescription,
     handleSubmit,
     handleKeyPress,
+    isLoading,
+    inputRef,
 }) {
     const darkMode = useSelector((state) => state.theme.darkMode);
     const isEdit = type === "edit";
@@ -35,55 +40,73 @@ export function TaskForm({
     };
 
     const formVariants = {
-        hidden: { opacity: 0, scale: 0.95 },
-        visible: { opacity: 1, scale: 1, transition: { duration: 0.2 } }
+        hidden: { opacity: 0, y: 20, scale: 0.98 },
+        visible: {
+            opacity: 1,
+            y: 0,
+            scale: 1,
+            transition: {
+                type: "spring",
+                damping: 25,
+                stiffness: 500
+            }
+        }
     };
 
     if (isDelete) {
         return (
             <Dialog open={isOpen} onOpenChange={setIsOpen}>
-                <DialogContent
-                    className={`sm:max-w-md rounded-2xl shadow-xl transition-all ${darkMode
-                        ? "bg-gray-900 border-gray-700 text-white"
-                        : "bg-white border-gray-200 text-gray-900"
-                        }`}
-                >
-                    <div className="absolute right-4 top-4">
+                <DialogContent className="sm:max-w-[450px] p-0 overflow-hidden rounded-2xl">
+                    <motion.div
+                        initial="hidden"
+                        animate="visible"
+                        variants={formVariants}
+                        className={`${darkMode ? "bg-gray-900" : "bg-white"}`}
+                    >
+                        <div className="relative">
 
-                    </div>
+                            <div className="flex flex-col items-center text-center px-8 pt-12 pb-6">
+                                <div className="relative mb-6">
+                                    <div className="absolute inset-0 bg-red-500/10 blur-xl rounded-full" />
+                                    <div className="relative bg-red-500/10 p-4 rounded-full">
+                                        <Trash2 className="w-8 h-8 text-red-500" />
+                                    </div>
+                                </div>
+                                <DialogTitle className="text-2xl font-bold tracking-tight mb-2">
+                                    Delete Task
+                                </DialogTitle>
+                                <DialogDescription className="text-muted-foreground max-w-sm">
+                                    This will permanently delete this task and cannot be undone.
+                                </DialogDescription>
+                            </div>
 
-                    <div className="flex flex-col items-center text-center pt-6 pb-2">
-                        <div className="bg-red-100 dark:bg-red-900/30 p-3 rounded-full mb-4">
-                            <Trash2 className="w-8 h-8 text-red-500" />
+                            <DialogFooter className="flex flex-col sm:flex-row gap-4 justify-center px-8 pb-8">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    className="w-20 h-11 rounded-xl font-medium"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    variant="destructive"
+                                    onClick={() => {
+                                        handleSubmit();
+                                        setIsOpen(false);
+                                    }}
+                                    disabled={isLoading}
+                                    className="w-fit bg-gray-900 h-11 rounded-xl font-medium gap-2"
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Trash2 className="h-4 w-4" />
+                                    )}
+                                    Delete Permanently
+                                </Button>
+                            </DialogFooter>
                         </div>
-                        <DialogTitle className="text-2xl font-bold mb-2">Delete Task</DialogTitle>
-                        <DialogDescription className="text-base text-gray-500 dark:text-gray-400 max-w-sm">
-                            Are you sure you want to delete this task? This action cannot be undone.
-                        </DialogDescription>
-                    </div>
-
-                    <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-6 sm:justify-center">
-                        <Button
-                            variant="outline"
-                            onClick={handleCancel}
-                            className={`w-full sm:w-auto text-base font-medium py-2 px-6 rounded-xl ${darkMode
-                                ? "bg-gray-800 border-gray-700 hover:bg-gray-700"
-                                : "bg-gray-50 border-gray-200 hover:bg-gray-100"
-                                }`}
-                        >
-                            Cancel
-                        </Button>
-                        <Button
-                            onClick={() => {
-                                handleSubmit();
-                                setIsOpen(false);
-                            }}
-                            variant="destructive"
-                            className="w-full sm:w-auto text-base font-medium py-2 px-6 rounded-xl bg-red-600 hover:bg-red-700 text-white focus:ring-4 focus:ring-red-200"
-                        >
-                            Delete permanently
-                        </Button>
-                    </DialogFooter>
+                    </motion.div>
                 </DialogContent>
             </Dialog>
         );
@@ -91,110 +114,134 @@ export function TaskForm({
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent
-                className={`sm:max-w-lg rounded-2xl shadow-xl transition-all ${darkMode
-                    ? "bg-gray-900 border-gray-700 text-white"
-                    : "bg-white border-gray-200 text-gray-900"
-                    }`}
-            >
-                <div className="absolute right-4 top-4">
+            <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden rounded-2xl">
+                <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={formVariants}
+                    className={`${darkMode ? "bg-gray-900" : "bg-white"}`}
+                >
+                    <div className="relative">
 
-                </div>
+                        <DialogHeader className="px-8 pt-8 pb-2">
+                            <div className="flex items-start gap-4">
+                                <div className="relative mt-1">
+                                    <div className="absolute inset-0 bg-blue-500/10 blur-xl rounded-lg" />
+                                    <div
+                                        className={`relative p-3 rounded-lg ${isEdit
+                                            ? "bg-amber-500/10 text-amber-500"
+                                            : "bg-blue-500/10 text-blue-500"
+                                            }`}
+                                    >
+                                        {isEdit ? (
+                                            <Pencil className="w-5 h-5" />
+                                        ) : (
+                                            <Plus className="w-5 h-5" />
+                                        )}
+                                    </div>
+                                </div>
+                                <div>
+                                    <DialogTitle className="text-2xl font-bold tracking-tight">
+                                        {isEdit ? "Edit Task" : "Create New Task"}
+                                    </DialogTitle>
+                                    <DialogDescription className="text-muted-foreground">
+                                        {isEdit
+                                            ? "Update your task details below"
+                                            : "Fill in the details to create a new task"}
+                                    </DialogDescription>
+                                </div>
+                            </div>
+                        </DialogHeader>
 
-                <div className="pt-6 pb-2">
-                    <div className={`inline-flex p-2 rounded-lg mb-3 ${isEdit
-                        ? "bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400"
-                        : "bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
-                        }`}>
-                        {isEdit ? <Pencil size={22} /> : <Plus size={22} />}
+                        <div className="px-8 py-6 space-y-6">
+                            <div className="space-y-2">
+                                <div className="flex items-center justify-between">
+                                    <Label htmlFor="task-title" className="text-sm font-medium">
+                                        Task Title
+                                    </Label>
+                                    <Badge
+                                        variant="outline"
+                                        className="text-xs font-normal px-2 py-0.5"
+                                    >
+                                        Required
+                                    </Badge>
+                                </div>
+                                <Input
+                                    id="task-title"
+                                    placeholder="Enter task title"
+                                    value={title}
+                                    onChange={(e) => setTitle(e.target.value)}
+                                    onKeyDown={handleKeyPress}
+                                    ref={inputRef}
+                                    className="h-12 text-base rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label htmlFor="task-description" className="text-sm font-medium">
+                                    Description
+                                </Label>
+                                <Textarea
+                                    id="task-description"
+                                    placeholder="Add detailed description (optional)"
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    className="min-h-32 text-base rounded-xl"
+                                />
+                            </div>
+
+                            <div className="space-y-2">
+                                <Label className="text-sm font-medium">Due Date</Label>
+                                <Button
+                                    variant="outline"
+                                    className="w-full h-12 justify-start text-left font-normal rounded-xl gap-2"
+                                >
+                                    <Calendar className="h-4 w-4 text-muted-foreground" />
+                                    <span className="text-muted-foreground">
+                                        Set due date (coming soon)
+                                    </span>
+                                </Button>
+                            </div>
+                        </div>
+
+                        <DialogFooter className="px-8 pb-8">
+                            <div className="flex w-full gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={handleCancel}
+                                    className="flex-1 h-11 rounded-xl font-medium"
+                                >
+                                    Cancel
+                                </Button>
+                                <Button
+                                    onClick={() => {
+                                        handleSubmit();
+                                        setIsOpen(false);
+                                    }}
+                                    disabled={!title.trim() || isLoading}
+                                    className={`flex-1 h-11 rounded-xl font-medium gap-2 ${isEdit
+                                        ? "bg-amber-600 hover:bg-amber-600/90"
+                                        : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-600/90 hover:to-indigo-600/90"
+                                        }`}
+                                >
+                                    {isLoading ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : isEdit ? (
+                                        <>
+                                            <Pencil className="h-4 w-4" />
+                                            Update Task
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Plus className="h-4 w-4" />
+                                            Create Task
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        </DialogFooter>
                     </div>
-                    <DialogTitle className={`text-2xl font-bold ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        {isEdit ? "Edit Task" : "Create New Task"}
-                    </DialogTitle>
-                    <p className={`mt-1.5 text-sm ${darkMode ? "text-gray-400" : "text-gray-500"}`}>
-                        {isEdit
-                            ? "Update the details of your existing task."
-                            : "Add a new task to your list and start tracking your progress."}
-                    </p>
-                </div>
-
-                <div className="space-y-5 py-4">
-                    <div>
-                        <label
-                            htmlFor="task-title"
-                            className={`text-sm font-medium mb-1.5 block ${darkMode ? "text-gray-300" : "text-gray-700"
-                                }`}
-                        >
-                            Task Title <span className="text-red-500">*</span>
-                        </label>
-                        <Input
-                            id="task-title"
-                            placeholder="Enter a descriptive title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            onKeyDown={handleKeyPress}
-                            className={`py-3 px-4 text-base rounded-xl w-full transition-all border-2 focus:ring-2 focus:ring-offset-0 ${darkMode
-                                ? "bg-gray-800 border-gray-700 focus:border-blue-500 focus:ring-blue-500/20"
-                                : "bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                }`}
-                        />
-                    </div>
-
-                    <div>
-                        <label
-                            htmlFor="task-description"
-                            className={`text-sm font-medium mb-1.5 block ${darkMode ? "text-gray-300" : "text-gray-700"
-                                }`}
-                        >
-                            Description
-                        </label>
-                        <Textarea
-                            id="task-description"
-                            placeholder="Add any additional details or notes"
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className={`min-h-32 py-3 px-4 text-base rounded-xl w-full transition-all border-2 focus:ring-2 focus:ring-offset-0 ${darkMode
-                                ? "bg-gray-800 border-gray-700 focus:border-blue-500 focus:ring-blue-500/20"
-                                : "bg-white border-gray-200 focus:border-blue-500 focus:ring-blue-500/20"
-                                }`}
-                        />
-                    </div>
-                </div>
-
-                <DialogFooter className="flex flex-col sm:flex-row gap-3 mt-4">
-                    <Button
-                        variant="outline"
-                        onClick={handleCancel}
-                        className={`w-full sm:w-auto text-base font-medium py-2.5 px-6 rounded-xl ${darkMode
-                            ? "bg-gray-800 border-gray-700 hover:bg-gray-700 text-gray-300"
-                            : "bg-gray-50 border-gray-200 hover:bg-gray-100 text-gray-700"
-                            }`}
-                    >
-                        Cancel
-                    </Button>
-                    <Button
-                        onClick={() => {
-                            handleSubmit();
-                            setIsOpen(false);
-                        }}
-                        disabled={!title.trim()}
-                        className={`w-full sm:w-auto text-base font-medium py-2.5 px-6 rounded-xl transition-all ${isEdit
-                            ? "bg-amber-500 hover:bg-amber-600 text-white"
-                            : "bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white"
-                            } disabled:opacity-50 disabled:cursor-not-allowed focus:ring-4 ${isEdit ? "focus:ring-amber-200" : "focus:ring-blue-200"
-                            }`}
-                    >
-                        {isEdit ? (
-                            <span className="flex items-center justify-center">
-                                <Pencil className="mr-2" size={18} /> Update Task
-                            </span>
-                        ) : (
-                            <span className="flex items-center justify-center">
-                                <Plus className="mr-2" size={18} /> Add Task
-                            </span>
-                        )}
-                    </Button>
-                </DialogFooter>
+                </motion.div>
             </DialogContent>
         </Dialog>
     );
