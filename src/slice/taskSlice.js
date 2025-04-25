@@ -19,14 +19,14 @@ const taskSlice = createSlice({
     updateTask: (state, action) => {
       const { _id, title, description, completed } = action.payload;
 
-      const taskIndex = state.tasks.findIndex((task) => task._id === _id);
+      const taskIndex = state.value.findIndex((task) => task._id === _id);
 
       if (taskIndex !== -1) {
-        if (title !== undefined) state.tasks[taskIndex].title = title;
+        if (title !== undefined) state.value[taskIndex].title = title;
         if (description !== undefined)
-          state.tasks[taskIndex].description = description;
+          state.value[taskIndex].description = description;
         if (completed !== undefined)
-          state.tasks[taskIndex].completed = completed;
+          state.value[taskIndex].completed = completed;
       }
     },
   },
