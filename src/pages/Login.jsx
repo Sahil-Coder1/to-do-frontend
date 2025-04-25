@@ -1,12 +1,11 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { setUser } from "@/slice/userSlice";
 import { useNavigate } from "react-router-dom";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
+import { toast } from "sonner";
 
 const Login = () => {
     const [isLogin, setIsLogin] = useState(true);
@@ -18,6 +17,7 @@ const Login = () => {
         confirmPassword: "",
         username: ""
     });
+    const [isLoading, setIsLoading] = useState(false);
 
     const SECRET = import.meta.env.VITE_SECRET;
     const BASE_API = import.meta.env.VITE_BASE_API;
@@ -40,6 +40,7 @@ const Login = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        setIsLoading(true);
 
         if (isLogin) {
             try {
@@ -52,18 +53,26 @@ const Login = () => {
                     body: JSON.stringify(formData)
                 });
                 const response = await res.json();
-                dispatch(setUser(response.user));
-                if (response.token) {
-                    document.cookie = `token=${response.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+
+                if (response.msg) {
+                    toast.error(response.msg);
+                } else {
+                    dispatch(setUser(response.user));
+                    if (response.token) {
+                        document.cookie = `token=${response.token}; path=/; max-age=${7 * 24 * 60 * 60}; secure; samesite=strict`;
+                    }
+                    toast.success(`Welcome Back ${response.user.username}`);
+                    navigate('/');
                 }
-                response.msg ? toast.error(response.msg) : toast.success("Welcome Back " + response.user.username);
-                navigate('/');
             } catch (error) {
                 toast.error("Login Failed");
+            } finally {
+                setIsLoading(false);
             }
         } else {
             if (formData.password !== formData.confirmPassword) {
-                alert("Passwords don't match!");
+                toast.error("Passwords don't match!");
+                setIsLoading(false);
                 return;
             }
             try {
@@ -77,9 +86,16 @@ const Login = () => {
                     body: JSON.stringify(formData)
                 });
                 const response = await res.json();
-                response.msg ? toast.error(response.msg) : toast.success("Register Successful");
+                if (response.msg) {
+                    toast.error(response.msg);
+                } else {
+                    toast.success("Registration Successful");
+                    setIsLogin(true); // Switch to login after successful registration
+                }
             } catch (error) {
-                toast.error("Register Failed");
+                toast.error("Registration Failed");
+            } finally {
+                setIsLoading(false);
             }
         }
     };
@@ -158,9 +174,17 @@ const Login = () => {
 
                     <Button
                         type="submit"
-                        className="w-full py-6 text-base bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600"
+                        className="w-full py-6 text-base bg-gradient-to-r from-blue-500 to-indigo-500 hover:from-blue-600 hover:to-indigo-600 flex items-center justify-center gap-2"
+                        disabled={isLoading}
                     >
-                        {isLogin ? "Login" : "Register"}
+                        {isLoading ? (
+                            <>
+                                <Loader2 className="animate-spin" size={20} />
+                                {isLogin ? "Logging in..." : "Registering..."}
+                            </>
+                        ) : (
+                            isLogin ? "Login" : "Register"
+                        )}
                     </Button>
                 </form>
 
@@ -169,6 +193,7 @@ const Login = () => {
                     <button
                         onClick={toggleAuthMode}
                         className={`hover:underline focus:outline-none ${darkMode ? "text-blue-400" : "text-blue-600"}`}
+                        disabled={isLoading}
                     >
                         {isLogin ? "Register" : "Login"}
                     </button>
