@@ -5,7 +5,8 @@ import {
     AlertCircle,
     Pencil,
     Trash2,
-    Plus
+    Plus,
+    Loader2
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,13 +44,9 @@ export function TaskList({
     return (
         <>
             {isLoading ? (
-                <div className="space-y-4">
-                    {[...Array(3)].map((_, i) => (
-                        <Skeleton
-                            key={i}
-                            className={`h-24 w-full rounded-xl ${darkMode ? "bg-gray-700" : "bg-white/70"}`}
-                        />
-                    ))}
+                <div className="space-y-4 h-96 flex justify-center items-center">
+                    <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+
                 </div>
             ) : filteredTasks.length === 0 ? (
                 <motion.div
@@ -106,9 +103,8 @@ export function TaskList({
                                     <div className="flex items-start gap-4 flex-grow min-w-0">
                                         <div className="relative mt-1 flex-shrink-0">
                                             {isItemLoading(task._id, "toggle") ? (
-                                                <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                                                    <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-500"></span>
-                                                </div>
+                                                <Loader2 className="h-5 w-5 animate-spin text-blue-500" />
+
                                             ) : (
                                                 <Checkbox
                                                     id={`task-${task._id}`}

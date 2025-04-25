@@ -1,32 +1,16 @@
 import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { add, remove, toggleCompleted, updateTask } from "../slice/taskSlice";
-import {
-    Plus,
-    Search,
-    Filter,
-    ChevronDown,
-    X,
-    CheckCircle2,
-    Clock,
-    ListChecks,
-    Sparkles
-} from "lucide-react";
+import { Plus, Search, ChevronDown, X, CheckCircle2, Clock, ListChecks, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/ui/Header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuItem
-} from "@/components/ui/dropdown-menu";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Toaster, toast } from "sonner";
 import { TaskList } from "@/components/TaskList";
 import { TaskForm } from "@/components/TaskForm";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Toaster, toast } from "sonner";
 
 const container = {
     hidden: { opacity: 0 },
@@ -53,7 +37,7 @@ export default function Home() {
     const [description, setDescription] = useState("");
     const [createTodo, setCreateTodo] = useState(false);
     const [tasks, setTasks] = useState([]);
-    const [isLoading, setIsLoading] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editTitle, setEditTitle] = useState("");
     const [editDescription, setEditDescription] = useState("");
@@ -66,13 +50,13 @@ export default function Home() {
 
     const titleInputRef = useRef(null);
     const editTitleInputRef = useRef(null);
-    const searchInputRef = useRef(null);
 
     const dispatch = useDispatch();
     const user = useSelector((state) => state.user.user);
     const darkMode = useSelector((state) => state.theme.darkMode);
     const BASE_API = import.meta.env.VITE_BASE_API;
 
+    // Focus management
     useEffect(() => {
         if (createTodo && titleInputRef.current) {
             setTimeout(() => titleInputRef.current.focus(), 100);
@@ -85,6 +69,7 @@ export default function Home() {
         }
     }, [isEditModalOpen]);
 
+    // Fetch tasks with skeleton loading
     useEffect(() => {
         if (user?._id) fetchTodos();
     }, [user]);
@@ -105,7 +90,7 @@ export default function Home() {
             console.error("Fetch error:", error.message);
             showToast("Error loading tasks", "error");
         } finally {
-            setIsLoading(false);
+            setTimeout(() => setIsLoading(false), 500); // Minimum loading time for smoother UX
         }
     };
 
@@ -114,6 +99,8 @@ export default function Home() {
             showToast("Title is required", "warning");
             return;
         }
+
+        setActiveAction({ type: "create", id: "new" });
 
         try {
             const res = await fetch(`${BASE_API}/todos`, {
@@ -130,15 +117,19 @@ export default function Home() {
 
             if (!res.ok) throw new Error("Failed to create task");
             const newTask = await res.json();
+
             dispatch(add(newTask));
             setTitle("");
             setDescription("");
             setCreateTodo(false);
             showToast("Task added successfully", "success");
-            await fetchTodos();
+
+            // Optimistic UI update with fallback to fetch
+            setTasks(prev => [...prev, newTask]);
         } catch (err) {
             console.error("Add error:", err.message);
             showToast("Failed to add task", "error");
+            await fetchTodos(); // Fallback to ensure data consistency
         } finally {
             setActiveAction(null);
         }
@@ -170,41 +161,35 @@ export default function Home() {
                 }),
             });
 
-            if (!res.ok) {
-                const errorText = await res.text();
-                throw new Error(`Failed to update task. Server said: ${errorText}`);
-            }
-
+            if (!res.ok) throw new Error("Failed to update task");
             const updatedTask = await res.json();
 
-            // Ensure the response has the correct structure
-            if (!updatedTask._id) {
-                throw new Error("Invalid task data received from server");
-            }
+            // Optimistic UI update
+            setTasks(prev => prev.map(task =>
+                task._id === editingTaskId ? updatedTask : task
+            ));
 
             dispatch(updateTask(updatedTask));
-
             setIsEditModalOpen(false);
-            setEditingTaskId(null);
-            setEditTitle("");
-            setEditDescription("");
-
             showToast("Task updated successfully", "success");
-
-            await fetchTodos();
-
         } catch (err) {
-            console.error("Error updating task:", err);
-            showToast(err.message || "Failed to update task", "error");
+            console.error("Update error:", err.message);
+            showToast("Failed to update task", "error");
+            await fetchTodos(); // Fallback to ensure data consistency
         } finally {
             setActiveAction(null);
         }
     };
 
-
     const handleComplete = async (id, currentStatus) => {
         setActiveAction({ type: "toggle", id });
+
         try {
+            // Optimistic UI update
+            setTasks(prev => prev.map(task =>
+                task._id === id ? { ...task, completed: !currentStatus } : task
+            ));
+
             const res = await fetch(`${BASE_API}/todos/${id}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
@@ -214,15 +199,43 @@ export default function Home() {
 
             if (!res.ok) throw new Error("Failed to update task");
             const updatedTask = await res.json();
+
             dispatch(toggleCompleted(updatedTask));
             showToast(
                 currentStatus ? "Task marked as incomplete" : "Task completed",
                 "success"
             );
-            await fetchTodos();
         } catch (err) {
             console.error("Complete error:", err.message);
             showToast("Failed to update task status", "error");
+            await fetchTodos(); // Fallback to ensure data consistency
+        } finally {
+            setActiveAction(null);
+        }
+    };
+
+    const deleteTask = async (id) => {
+        setActiveAction({ type: "delete", id });
+
+        try {
+            // Optimistic UI update
+            setTasks(prev => prev.filter(task => task._id !== id));
+
+            const res = await fetch(`${BASE_API}/todos/${id}`, {
+                method: "DELETE",
+                headers: { "Content-Type": "application/json" },
+                credentials: "include",
+            });
+
+            if (!res.ok) throw new Error("Failed to delete task");
+
+            dispatch(remove(id));
+            showToast("Task deleted successfully", "success");
+            setIsDeleteModalOpen(false);
+        } catch (err) {
+            console.error("Delete error:", err.message);
+            showToast("Failed to delete task", "error");
+            await fetchTodos(); // Fallback to ensure data consistency
         } finally {
             setActiveAction(null);
         }
@@ -233,91 +246,60 @@ export default function Home() {
         setIsDeleteModalOpen(true);
     };
 
-    const deleteTask = async (id) => {
-        setActiveAction({ type: "delete", id });
-        try {
-            const res = await fetch(`${BASE_API}/todos/${id}`, {
-                method: "DELETE",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-            });
+    const handleKeyPress = (e) => e.key === "Enter" && handleAdd();
+    const handleEditKeyPress = (e) => e.key === "Enter" && !e.shiftKey && handleUpdate();
 
-            if (!res.ok) throw new Error("Failed to delete task");
-            dispatch(remove(id));
-            showToast("Task deleted successfully", "success");
-            setIsDeleteModalOpen(false);
-            await fetchTodos();
-        } catch (err) {
-            console.error("Delete error:", err.message);
-            showToast("Failed to delete task", "error");
-        } finally {
-            setActiveAction(null);
-        }
-    };
+    const isItemLoading = (id, actionType) =>
+        activeAction?.id === id && activeAction?.type === actionType;
 
-    const handleKeyPress = (e) => {
-        if (e.key === "Enter") handleAdd();
-    };
-
-    const handleEditKeyPress = (e) => {
-        if (e.key === "Enter" && !e.shiftKey) handleUpdate();
-    };
-
-    const isItemLoading = (id, actionType) => {
-        return activeAction?.id === id && activeAction?.type === actionType;
-    };
-
-    const filteredTasks = tasks.filter((task) => {
-        const matchesSearch =
-            task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            task.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const filteredTasks = tasks.filter(task => {
+        const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            task.description?.toLowerCase().includes(searchQuery.toLowerCase());
 
         if (filterStatus === "all") return matchesSearch;
         if (filterStatus === "active") return matchesSearch && !task.completed;
         if (filterStatus === "completed") return matchesSearch && task.completed;
-
         return matchesSearch;
     });
 
     const showToast = (message, type) => {
+        const toastConfig = {
+            position: "top-right",
+            duration: 3000,
+            style: {
+                borderRadius: "12px",
+                padding: "16px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                border: "none"
+            }
+        };
+
         if (type === "success") {
             toast.success(message, {
-                position: "top-right",
-                duration: 3000,
-                icon: <CheckCircle2 className="h-5 w-5" />
+                ...toastConfig,
+                icon: <CheckCircle2 className="h-5 w-5 text-green-500" />
             });
         } else if (type === "warning") {
-            toast.warning(message, {
-                position: "top-right",
-                duration: 4000
-            });
+            toast.warning(message, toastConfig);
         } else {
-            toast.error(message, {
-                position: "top-right",
-                duration: 4000
-            });
+            toast.error(message, toastConfig);
         }
     };
 
-    const completedCount = tasks.filter(task => task.completed).length;
-    const activeCount = tasks.length - completedCount;
-
     return (
-        <div
-            className={`min-h-screen ${darkMode
-                ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100"
-                : "bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 text-gray-900"
-                }`}
+        <div className={`min-h-screen ${darkMode
+            ? "bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-gray-100"
+            : "bg-gradient-to-br from-blue-50 via-indigo-50 to-violet-50 text-gray-900"
+            }`}
         >
             <Header />
 
-            {/* Sonner Toaster Component */}
             <Toaster
                 richColors
                 closeButton
                 theme={darkMode ? "dark" : "light"}
                 toastOptions={{
-                    className: "rounded-xl shadow-lg border",
+                    className: "rounded-xl shadow-lg",
                     style: {
                         padding: "16px"
                     }
@@ -347,18 +329,17 @@ export default function Home() {
 
                         <Button
                             onClick={() => setCreateTodo(true)}
-                            className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 px-6 py-6 h-auto text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group"
+                            className="rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 px-6 py-6 h-auto text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-300 group hidden lg:flex"
                         >
                             <Plus className="mr-2 h-5 w-5 group-hover:rotate-90 transition-transform duration-300" />
                             Create Task
                         </Button>
                     </motion.div>
 
-
                     {/* Filter Bar */}
                     <motion.div
                         variants={item}
-                        className={`p-4 rounded-2xl shadow-lg ${darkMode
+                        className={`p-4 rounded-2xl shadow-lg transition-all duration-300 ${darkMode
                             ? "bg-gray-800/70 border border-gray-700"
                             : "bg-white/80 backdrop-blur-sm border border-blue-100"
                             }`}
@@ -369,11 +350,10 @@ export default function Home() {
                                     <Search className="h-5 w-5" />
                                 </div>
                                 <Input
-                                    ref={searchInputRef}
-                                    placeholder="Search tasks by title or description..."
+                                    placeholder="Search tasks..."
                                     value={searchQuery}
                                     onChange={(e) => setSearchQuery(e.target.value)}
-                                    className={`pl-12 py-6 rounded-xl text-base border-2 focus:ring-2 focus:ring-offset-0 ${darkMode
+                                    className={`pl-12 py-6 rounded-xl text-base border-2 focus:ring-2 focus:ring-offset-0 transition-all ${darkMode
                                         ? "bg-gray-700 border-gray-600 focus:border-blue-500 focus:ring-blue-500/20"
                                         : "bg-white border-gray-100 focus:border-blue-500 focus:ring-blue-500/20"
                                         }`}
@@ -393,27 +373,27 @@ export default function Home() {
                                 onValueChange={setFilterStatus}
                                 className="w-full md:w-auto"
                             >
-                                <TabsList className={`w-full grid grid-cols-3 h-12 rounded-xl ${darkMode
+                                <TabsList className={`w-full grid grid-cols-3 h-12 rounded-xl transition-colors ${darkMode
                                     ? "bg-gray-700"
                                     : "bg-gray-100"
                                     }`}>
                                     <TabsTrigger
                                         value="all"
-                                        className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg"
+                                        className="data-[state=active]:bg-blue-600 data-[state=active]:text-white rounded-lg transition-all"
                                     >
                                         <ListChecks className="h-4 w-4 mr-2" />
                                         All
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="active"
-                                        className="data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg"
+                                        className="data-[state=active]:bg-amber-500 data-[state=active]:text-white rounded-lg transition-all"
                                     >
                                         <Clock className="h-4 w-4 mr-2" />
                                         Active
                                     </TabsTrigger>
                                     <TabsTrigger
                                         value="completed"
-                                        className="data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg"
+                                        className="data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all"
                                     >
                                         <CheckCircle2 className="h-4 w-4 mr-2" />
                                         Done
@@ -426,15 +406,14 @@ export default function Home() {
                     {/* Task List */}
                     <motion.div
                         variants={item}
-                        className={`rounded-2xl shadow-lg overflow-hidden ${darkMode
+                        className={`rounded-2xl shadow-lg overflow-hidden transition-all ${darkMode
                             ? "bg-gray-800/70 border border-gray-700"
                             : "bg-white/80 backdrop-blur-sm border border-blue-100"
                             }`}
                     >
                         <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
                             <div className="flex items-center">
-                                <Sparkles className={`h-5 w-5 mr-3 ${darkMode ? "text-indigo-400" : "text-indigo-600"
-                                    }`} />
+                                <Sparkles className={`h-5 w-5 mr-3 ${darkMode ? "text-indigo-400" : "text-indigo-600"}`} />
                                 <h2 className="text-xl font-bold">
                                     {filterStatus === "all"
                                         ? "All Tasks"
@@ -444,8 +423,7 @@ export default function Home() {
                                 </h2>
                                 <Badge
                                     variant="outline"
-                                    className={`ml-3 ${darkMode ? "border-gray-600" : "border-gray-300"
-                                        }`}
+                                    className={`ml-3 ${darkMode ? "border-gray-600" : "border-gray-300"}`}
                                 >
                                     {filteredTasks.length}
                                 </Badge>
@@ -496,6 +474,7 @@ export default function Home() {
                     handleSubmit={handleAdd}
                     handleKeyPress={handleKeyPress}
                     isLoading={isItemLoading("new", "create")}
+                    inputRef={titleInputRef}
                 />
 
                 <TaskForm
@@ -509,6 +488,7 @@ export default function Home() {
                     handleSubmit={handleUpdate}
                     handleKeyPress={handleEditKeyPress}
                     isLoading={isItemLoading(editingTaskId, "update")}
+                    inputRef={editTitleInputRef}
                 />
 
                 <TaskForm
